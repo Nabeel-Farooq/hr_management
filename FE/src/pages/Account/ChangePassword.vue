@@ -3,114 +3,109 @@
     <div class="container">
       <div class="avatar flex flex-center q-pt-md column">
         <q-avatar size="200px">
-          <img :src="getInformation.avatar.original" />
+          <img :src="getInformation?.avatar?.original" />
         </q-avatar>
       </div>
+
+      <!-- Old Password -->
       <div class="old-password q-mt-lg q-px-md">
         <q-input
           ref="oldRef"
+          v-model.trim="oldPassword"
           standout
           lazy-rules
           maxlength="500"
-          v-model="oldPassword"
-          :type="showPassword[0] ? 'text' : 'password'"
           hide-bottom-space
+          :type="showPassword[0] ? 'text' : 'password'"
           :label="$t('oldPassword')"
           :label-color="labelColorFocus[0]"
+          :rules="oldPasswordRules"
           @focus="labelColorFocus[0] = 'white'"
           @blur="labelColorFocus[0] = ''"
-          :rules="[(val) => !!val || $t('oldPwdRequired')]"
         >
-          <template v-slot:prepend>
+          <template #prepend>
             <q-icon name="fas fa-lock" />
           </template>
-          <template v-slot:append>
+
+          <template #append>
             <q-icon
-              :name="showPassword[0] ? 'visibility_off' : 'visibility'"
               class="cursor-pointer"
-              @click="showPassword[0] = !showPassword[0]"
+              :name="showPassword[0] ? 'visibility_off' : 'visibility'"
+              @click="togglePassword(0)"
             />
           </template>
         </q-input>
       </div>
+
+      <!-- New Password -->
       <div class="new-password q-mt-sm q-px-md">
         <q-input
           ref="newRef"
+          v-model.trim="newPassword"
           standout
           lazy-rules
           maxlength="100"
-          v-model="newPassword"
-          :type="showPassword[1] ? 'text' : 'password'"
           hide-bottom-space
+          :type="showPassword[1] ? 'text' : 'password'"
           :label="$t('newPassword')"
           :label-color="labelColorFocus[1]"
+          :rules="newPasswordRules"
           @focus="labelColorFocus[1] = 'white'"
           @blur="labelColorFocus[1] = ''"
-          :rules="[
-            (val) => !!val || $t('newPwdRequired'),
-            (val) =>
-              (val && val.length > 5) ||
-              $t('pwdLength'),
-            (val) =>
-              val != oldPassword ||
-              $t('pwdSame'),
-          ]"
         >
-          <template v-slot:prepend>
+          <template #prepend>
             <q-icon name="password" />
           </template>
-          <template v-slot:append>
+
+          <template #append>
             <q-icon
-              :name="showPassword[1] ? 'visibility_off' : 'visibility'"
               class="cursor-pointer"
-              @click="showPassword[1] = !showPassword[1]"
+              :name="showPassword[1] ? 'visibility_off' : 'visibility'"
+              @click="togglePassword(1)"
             />
           </template>
         </q-input>
       </div>
+
+      <!-- Confirm Password -->
       <div class="confirm-password q-mt-sm q-px-md">
         <q-input
           ref="confirmRef"
+          v-model.trim="confirmPassword"
           standout
           lazy-rules
           maxlength="100"
-          v-model="confirmPassword"
-          :type="showPassword[1] ? 'text' : 'password'"
           hide-bottom-space
+          :type="showPassword[1] ? 'text' : 'password'"
           :label="$t('confirmPwd')"
           :label-color="labelColorFocus[2]"
+          :rules="confirmPasswordRules"
           @focus="labelColorFocus[2] = 'white'"
           @blur="labelColorFocus[2] = ''"
-          :rules="[
-            (val) => !!val || $t('confirmPwdRequired'),
-            (val) =>
-              (val && val.length > 5) ||
-              $t('confirmPwdLength'),
-            (val) =>
-              val == newPassword ||
-              $t('confirmPwdSame'),
-          ]"
         >
-          <template v-slot:prepend>
+          <template #prepend>
             <q-icon name="password" />
           </template>
-          <template v-slot:append>
+
+          <template #append>
             <q-icon
-              :name="showPassword[1] ? 'visibility_off' : 'visibility'"
               class="cursor-pointer"
-              @click="showPassword[1] = !showPassword[1]"
+              :name="showPassword[1] ? 'visibility_off' : 'visibility'"
+              @click="togglePassword(1)"
             />
           </template>
         </q-input>
       </div>
+
+      <!-- Save Button -->
       <div class="btn-save flex flex-center q-pb-md">
         <q-btn
+          color="primary"
+          style="width: 100px"
+          :label="$t('btnSave')"
           :loading="loadingSave"
           :disable="loadingSave"
           @click="save"
-          color="primary"
-          :label="$t('btnSave')"
-          style="width: 100px"
         />
       </div>
     </div>
@@ -119,8 +114,7 @@
 
 <script>
 import { defineComponent } from "vue";
-import { mapGetters, mapActions, mapMutations } from "vuex";
-import { useQuasar } from "quasar";
+import { mapGetters, mapActions } from "vuex";
 import { api } from "src/boot/axios";
 import MD5 from "crypto-js/md5";
 
@@ -130,6 +124,7 @@ export default defineComponent({
   data() {
     return {
       accountInfor: null,
+
       oldPassword: "",
       newPassword: "",
       confirmPassword: "",
@@ -141,107 +136,157 @@ export default defineComponent({
       labelColorFocus: [],
     };
   },
+
+  computed: {
+    ...mapGetters("auth", ["getInformation"]),
+
+    oldPasswordRules() {
+      return [
+        (val) => !!val || this.$t("oldPwdRequired"),
+      ];
+    },
+
+    newPasswordRules() {
+      return [
+        (val) => !!val || this.$t("newPwdRequired"),
+        (val) => val.length > 5 || this.$t("pwdLength"),
+        (val) => val !== this.oldPassword || this.$t("pwdSame"),
+      ];
+    },
+
+    confirmPasswordRules() {
+      return [
+        (val) => !!val || this.$t("confirmPwdRequired"),
+        (val) => val.length > 5 || this.$t("confirmPwdLength"),
+        (val) => val === this.newPassword || this.$t("confirmPwdSame"),
+      ];
+    },
+  },
+
   methods: {
     ...mapActions("auth", ["validateToken", "logOut"]),
 
+    togglePassword(index) {
+      this.showPassword[index] = !this.showPassword[index];
+    },
+
+    validateForm() {
+      return (
+        this.$refs.oldRef?.validate() &&
+        this.$refs.newRef?.validate() &&
+        this.$refs.confirmRef?.validate()
+      );
+    },
+
     async save() {
       try {
-        if (
-          !this.$refs.oldRef.validate() ||
-          !this.$refs.newRef.validate() ||
-          !this.$refs.confirmRef.validate()
-        ) {
-          return null;
+        if (!this.validateForm()) {
+          return;
         }
 
         this.loadingSave = true;
-        let isAuth = await this.validateToken();
 
-        if (isAuth) {
-          let result = await this.requestChangePassword();
+        const isAuth = await this.validateToken();
 
-          if (result.success) {
-            this.$q.notify({
-              type: "positive",
-              message: "Successfully updated",
-            });
-
-            await this.logOut();
-
-            // Set 3s to increase user experience
-            setTimeout(() => {
-              this.$router.replace("/login");
-            }, 3000);
-          } else {
-            this.$q.notify({
-              type: "negative",
-              message: result.message[0],
-            });
-          }
-        } else {
+        if (!isAuth) {
           this.$router.replace("/login");
+          return;
         }
-      } catch (ex) {
+
+        const result = await this.requestChangePassword();
+
+        if (result?.success) {
+          this.$q.notify({
+            type: "positive",
+            message: this.$t("Successfully updated"),
+          });
+
+          await this.logOut();
+
+          setTimeout(() => {
+            this.$router.replace("/login");
+          }, 3000);
+
+          return;
+        }
+
         this.$q.notify({
           type: "negative",
-          message: `Saving error!`,
+          message: result?.message?.[0] || "Update failed",
+        });
+      } catch (error) {
+        console.error("Change password error:", error);
+
+        this.$q.notify({
+          type: "negative",
+          message: "Saving error!",
         });
       } finally {
         this.loadingSave = false;
       }
     },
-    async requestChangePassword() {
-      let payload = {
-        oldPassword: MD5(this.oldPassword).toString(),
-        newPassword: MD5(this.confirmPassword).toString(),
-      };
 
-      // Request API sefl-update
-      return api
-        .put(`/api/v1/account/change-password/${this.accountInfor.id}`, payload)
-        .then((response) => {
-          return response.data;
-        })
-        .catch(function (error) {
-          // Checking if throw error
-          if (error.response) {
-            // Server response
-            return error.response.data;
-          } else {
-            // Server not working
-            let temp = { success: false, message: ["Server Error!"] };
-            return temp;
-          }
-        });
+    async requestChangePassword() {
+      try {
+        const payload = {
+          oldPassword: MD5(this.oldPassword).toString(),
+          newPassword: MD5(this.confirmPassword).toString(),
+        };
+
+        const response = await api.put(
+          `/api/v1/account/change-password/${this.accountInfor.id}`,
+          payload
+        );
+
+        return response.data;
+      } catch (error) {
+        if (error.response?.data) {
+          return error.response.data;
+        }
+
+        return {
+          success: false,
+          message: ["Server Error!"],
+        };
+      }
     },
+
     mapInformation() {
-      this.accountInfor = Object.assign({}, this.getInformation);
-      this.imageURL = this.accountInfor.avatar.original;
+      this.accountInfor = {
+        ...this.getInformation,
+      };
     },
   },
-  computed: {
-    ...mapGetters("auth", ["getInformation"]),
-  },
+
   created() {
     this.mapInformation();
-  },
-  mounted() {
-    const $q = useQuasar();
   },
 });
 </script>
 
 <style lang="scss" scoped>
 .container {
-  background-color: $accent;
-  height: 600px;
-  width: 460px;
-  border-radius: 10px;
   position: relative;
+  width: 460px;
+  height: 600px;
+
+  background-color: $accent;
+  border-radius: 10px;
+
+  overflow: hidden;
+
   .btn-save {
     position: absolute;
     bottom: 0;
     width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .container {
+    width: 95%;
+    height: auto;
+    min-height: 600px;
   }
 }
 </style>
