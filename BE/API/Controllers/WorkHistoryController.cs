@@ -1,7 +1,7 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Business.Communication;
-using Business.Domain.Models;
 using Business.Data;
+using Business.Domain.Models;
 using Business.Domain.Services;
 using Business.Resources;
 using Business.Resources.WorkHistory;
@@ -13,59 +13,71 @@ using Serilog;
 namespace API.Controllers;
 
 [Route("api/v1/work-history")]
-public class WorkHistoryController : DongNguyenController<WorkHistoryResource, CreateWorkHistoryResource, UpdateWorkHistoryResource, WorkHistory>
+public sealed class WorkHistoryController
+    : DongNguyenController<WorkHistoryResource, CreateWorkHistoryResource, UpdateWorkHistoryResource, WorkHistory>
 {
-    #region Constructor
-    public WorkHistoryController(IWorkHistoryService workHistoryService,
-        IMapper mapper,
-        IOptionsMonitor<ResponseMessage> responseMessage) : base(workHistoryService, mapper, responseMessage)
-    {
-        }
-    #endregion
+    private const string EditorRoles =
+        $"{Role.Admin}, {Role.EditorQTNS}, {Role.EditorQTDA}";
 
-    #region Action
+    public WorkHistoryController(
+        IWorkHistoryService workHistoryService,
+        IMapper mapper,
+        IOptionsMonitor<ResponseMessage> responseMessage)
+        : base(workHistoryService, mapper, responseMessage)
+    {
+    }
+
     [HttpPost]
-    [Authorize(Roles = $"{Role.Admin}, {Role.EditorQTNS}, {Role.EditorQTDA}")]
+    [Authorize(Roles = EditorRoles)]
     [ProducesResponseType(typeof(BaseResponse<WorkHistoryResource>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(BaseResponse<WorkHistoryResource>), StatusCodes.Status400BadRequest)]
-    public new async Task<IActionResult> CreateAsync([FromBody] CreateWorkHistoryResource resource)
+    public new Task<IActionResult> CreateAsync([FromBody] CreateWorkHistoryResource resource)
     {
-            Log.Information($"{User.Identity?.Name}: create a work-history.");
+        Log.Information("{User} created a work-history.", User.Identity?.Name);
 
-            return await base.CreateAsync(resource);
-        }
+        return base.CreateAsync(resource);
+    }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = $"{Role.Admin}, {Role.EditorQTNS}, {Role.EditorQTDA}")]
+    [Authorize(Roles = EditorRoles)]
     [ProducesResponseType(typeof(BaseResponse<WorkHistoryResource>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BaseResponse<WorkHistoryResource>), StatusCodes.Status400BadRequest)]
-    public new async Task<IActionResult> UpdateAsync(int id, [FromBody] UpdateWorkHistoryResource resource)
+    public new Task<IActionResult> UpdateAsync(
+        int id,
+        [FromBody] UpdateWorkHistoryResource resource)
     {
-            Log.Information($"{User.Identity?.Name}: update a work-history with Id is {id}.");
+        Log.Information(
+            "{User} updated work-history with Id {Id}.",
+            User.Identity?.Name,
+            id);
 
-            return await base.UpdateAsync(id, resource);
-        }
+        return base.UpdateAsync(id, resource);
+    }
 
     [HttpPut]
-    [Authorize(Roles = $"{Role.Admin}, {Role.EditorQTNS}, {Role.EditorQTDA}")]
+    [Authorize(Roles = EditorRoles)]
     [ProducesResponseType(typeof(BaseResponse<WorkHistoryResource>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BaseResponse<WorkHistoryResource>), StatusCodes.Status400BadRequest)]
-    public new async Task<IActionResult> ChangeOrderIndexAsync([FromBody] List<int> ids)
+    public new Task<IActionResult> ChangeOrderIndexAsync([FromBody] List<int> ids)
     {
-            Log.Information($"{User.Identity?.Name}: change order-index a work-history.");
+        Log.Information(
+            "{User} changed work-history order indexes.",
+            User.Identity?.Name);
 
-            return await base.ChangeOrderIndexAsync(ids);
-        }
+        return base.ChangeOrderIndexAsync(ids);
+    }
 
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = $"{Role.Admin}, {Role.EditorQTNS}, {Role.EditorQTDA}")]
+    [Authorize(Roles = EditorRoles)]
     [ProducesResponseType(typeof(BaseResponse<WorkHistoryResource>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BaseResponse<WorkHistoryResource>), StatusCodes.Status400BadRequest)]
-    public new async Task<IActionResult> DeleteAsync(int id)
+    public new Task<IActionResult> DeleteAsync(int id)
     {
-            Log.Information($"{User.Identity?.Name}: delete a work-history with Id is {id}.");
+        Log.Information(
+            "{User} deleted work-history with Id {Id}.",
+            User.Identity?.Name,
+            id);
 
-            return await base.DeleteAsync(id);
-        }
-    #endregion
+        return base.DeleteAsync(id);
+    }
 }
