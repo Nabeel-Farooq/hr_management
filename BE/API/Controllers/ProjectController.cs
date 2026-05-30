@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Business.Communication;
 using Business.Data;
 using Business.Domain.Models;
@@ -13,59 +13,79 @@ using Serilog;
 namespace API.Controllers;
 
 [Route("api/v1/project")]
-public class ProjectController : DongNguyenController<ProjectResource, CreateProjectResource, UpdateProjectResource, Project>
+public sealed class ProjectController
+    : DongNguyenController<
+        ProjectResource,
+        CreateProjectResource,
+        UpdateProjectResource,
+        Project>
 {
-    #region Constructor
-    public ProjectController(IProjectService projectService,
-        IMapper mapper,
-        IOptionsMonitor<ResponseMessage> responseMessage) : base(projectService, mapper, responseMessage)
-    {
-        }
-    #endregion
+    private const string EditorRoles =
+        $"{Role.Admin}, {Role.EditorQTNS}, {Role.EditorQTDA}";
 
-    #region Action
+    public ProjectController(
+        IProjectService projectService,
+        IMapper mapper,
+        IOptionsMonitor<ResponseMessage> responseMessage)
+        : base(projectService, mapper, responseMessage)
+    {
+    }
+
     [HttpPost]
-    [Authorize(Roles = $"{Role.Admin}, {Role.EditorQTNS}, {Role.EditorQTDA}")]
+    [Authorize(Roles = EditorRoles)]
     [ProducesResponseType(typeof(BaseResponse<ProjectResource>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(BaseResponse<ProjectResource>), StatusCodes.Status400BadRequest)]
-    public new async Task<IActionResult> CreateAsync([FromBody] CreateProjectResource resource)
+    public new Task<IActionResult> CreateAsync(
+        [FromBody] CreateProjectResource resource)
     {
-            Log.Information($"{User.Identity?.Name}: create a project.");
+        Log.Information(
+            "{User} created a project.",
+            User.Identity?.Name);
 
-            return await base.CreateAsync(resource);
-        }
+        return base.CreateAsync(resource);
+    }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = $"{Role.Admin}, {Role.EditorQTNS}, {Role.EditorQTDA}")]
+    [Authorize(Roles = EditorRoles)]
     [ProducesResponseType(typeof(BaseResponse<ProjectResource>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BaseResponse<ProjectResource>), StatusCodes.Status400BadRequest)]
-    public new async Task<IActionResult> UpdateAsync(int id, [FromBody] UpdateProjectResource resource)
+    public new Task<IActionResult> UpdateAsync(
+        int id,
+        [FromBody] UpdateProjectResource resource)
     {
-            Log.Information($"{User.Identity?.Name}: update a project with Id is {id}.");
+        Log.Information(
+            "{User} updated project {ProjectId}.",
+            User.Identity?.Name,
+            id);
 
-            return await base.UpdateAsync(id, resource);
-        }
+        return base.UpdateAsync(id, resource);
+    }
 
     [HttpPut]
-    [Authorize(Roles = $"{Role.Admin}, {Role.EditorQTNS}, {Role.EditorQTDA}")]
+    [Authorize(Roles = EditorRoles)]
     [ProducesResponseType(typeof(BaseResponse<ProjectResource>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BaseResponse<ProjectResource>), StatusCodes.Status400BadRequest)]
-    public new async Task<IActionResult> ChangeOrderIndexAsync([FromBody] List<int> ids)
+    public new Task<IActionResult> ChangeOrderIndexAsync(
+        [FromBody] List<int> ids)
     {
-            Log.Information($"{User.Identity?.Name}: change order-index a project.");
+        Log.Information(
+            "{User} changed project order indexes.",
+            User.Identity?.Name);
 
-            return await base.ChangeOrderIndexAsync(ids);
-        }
+        return base.ChangeOrderIndexAsync(ids);
+    }
 
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = $"{Role.Admin}, {Role.EditorQTNS}, {Role.EditorQTDA}")]
+    [Authorize(Roles = EditorRoles)]
     [ProducesResponseType(typeof(BaseResponse<ProjectResource>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BaseResponse<ProjectResource>), StatusCodes.Status400BadRequest)]
-    public new async Task<IActionResult> DeleteAsync(int id)
+    public new Task<IActionResult> DeleteAsync(int id)
     {
-            Log.Information($"{User.Identity?.Name}: delete a project with Id is {id}.");
+        Log.Information(
+            "{User} deleted project {ProjectId}.",
+            User.Identity?.Name,
+            id);
 
-            return await base.DeleteAsync(id);
-        }
-    #endregion
+        return base.DeleteAsync(id);
+    }
 }
