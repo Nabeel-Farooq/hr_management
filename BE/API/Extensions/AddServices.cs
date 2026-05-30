@@ -13,7 +13,17 @@ public static class AddServices
 {
     public static void AddDependencyInjection(this IServiceCollection services)
     {
-        // Repositories
+        RegisterRepositories(services);
+        RegisterServices(services);
+
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IImageService, ImageService>();
+
+        services.AddAutoMapper(typeof(ModelToResourceProfile));
+    }
+
+    private static void RegisterRepositories(IServiceCollection services)
+    {
         services.AddScoped<IPersonRepository, PersonRepository>();
         services.AddScoped<IEducationRepository, EducationRepository>();
         services.AddScoped<ICertificateRepository, CertificateRepository>();
@@ -29,8 +39,10 @@ public static class AddServices
         services.AddScoped<IDepartmentRepository, DepartmentRepository>();
         services.AddScoped<IPayRepository, PayRepository>();
         services.AddScoped<ITokenRepository, TokenRepository>();
+    }
 
-        // Services
+    private static void RegisterServices(IServiceCollection services)
+    {
         services.AddScoped<IPersonService, PersonService>();
         services.AddScoped<IEducationService, EducationService>();
         services.AddScoped<ICertificateService, CertificateService>();
@@ -46,54 +58,41 @@ public static class AddServices
         services.AddScoped<ITimesheetService, TimesheetService>();
         services.AddScoped<IDepartmentService, DepartmentService>();
         services.AddScoped<IPayService, PayService>();
-
-        services.AddScoped<IImageService, ImageService>();
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
-
-        services.AddAutoMapper(typeof(ModelToResourceProfile));
     }
 
     public static void AddCustomizeSwagger(this IServiceCollection services)
     {
         services.AddSwaggerGen(options =>
         {
-            options.SwaggerDoc(
-                "v1",
-                new OpenApiInfo
-                {
-                    Title = "Human Resource Management for IT Company",
-                    Version = "v1.0"
-                });
+            options.SwaggerDoc("v1", new OpenApiInfo
+            {
+                Title = "Human Resource Management for IT Company",
+                Version = "v1.0"
+            });
 
             options.OperationFilter<SwaggerFileOperationFilter>();
 
-            var securityScheme = new OpenApiSecurityScheme
+            var jwtScheme = new OpenApiSecurityScheme
             {
-                Name = "Human Resource Management for IT Company",
-                Description = "Enter JWT Bearer token only",
+                Name = "Authorization",
+                Description = "Enter Bearer {token}",
                 In = ParameterLocation.Header,
                 Type = SecuritySchemeType.Http,
                 Scheme = JwtBearerDefaults.AuthenticationScheme.ToLowerInvariant(),
                 BearerFormat = "JWT",
                 Reference = new OpenApiReference
                 {
-                    Id = JwtBearerDefaults.AuthenticationScheme,
-                    Type = ReferenceType.SecurityScheme
+                    Type = ReferenceType.SecurityScheme,
+                    Id = JwtBearerDefaults.AuthenticationScheme
                 }
             };
 
-            options.AddSecurityDefinition(
-                securityScheme.Reference.Id,
-                securityScheme);
+            options.AddSecurityDefinition(jwtScheme.Reference.Id, jwtScheme);
 
-            options.AddSecurityRequirement(
-                new OpenApiSecurityRequirement
-                {
-                    {
-                        securityScheme,
-                        Array.Empty<string>()
-                    }
-                });
+            options.AddSecurityRequirement(new OpenApiSecurityRequirement
+            {
+                [jwtScheme] = Array.Empty<string>()
+            });
         });
     }
 
@@ -105,7 +104,6 @@ public static class AddServices
         ArgumentNullException.ThrowIfNull(configure);
 
         var config = new ScheduleConfig<T>();
-
         configure(config);
 
         if (string.IsNullOrWhiteSpace(config.CronExpression))
