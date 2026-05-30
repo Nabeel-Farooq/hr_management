@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Business.Communication;
 using Business.Data;
 using Business.Domain.Models;
@@ -15,71 +15,93 @@ using Serilog;
 namespace API.Controllers;
 
 [Route("api/v1/technology")]
-public class TechnologyController : DongNguyenController<TechnologyResource, CreateTechnologyResource, UpdateTechnologyResource, Technology>
+public sealed class TechnologyController
+    : DongNguyenController<
+        TechnologyResource,
+        CreateTechnologyResource,
+        UpdateTechnologyResource,
+        Technology>
 {
-    #region Constructor
-    public TechnologyController(ITechnologyService technologyService,
+    private const string EditorRoles =
+        $"{Role.Admin}, {Role.EditorQTNS}, {Role.EditorQTDA}";
+
+    private readonly ITechnologyRepository _technologyRepository;
+
+    public TechnologyController(
+        ITechnologyService technologyService,
         ITechnologyRepository technologyRepository,
         IMapper mapper,
-        IOptionsMonitor<ResponseMessage> responseMessage) : base(technologyService, mapper, responseMessage)
+        IOptionsMonitor<ResponseMessage> responseMessage)
+        : base(technologyService, mapper, responseMessage)
     {
-        this._technologyRepository = technologyRepository;
+        _technologyRepository = technologyRepository;
     }
-    #endregion
 
-    #region Property
-    private readonly ITechnologyRepository _technologyRepository;
-    #endregion
-
-    #region Action
     [HttpGet("search")]
-    [Authorize(Roles = $"{Role.Admin}, {Role.EditorQTNS}, {Role.EditorQTDA}")]
+    [Authorize(Roles = EditorRoles)]
     [ProducesResponseType(typeof(BaseResponse<IEnumerable<TechnologyResource>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BaseResponse<IEnumerable<TechnologyResource>>), StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(BaseResponse<IEnumerable<TechnologyResource>>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> FindAsync([FromQuery] string filterName)
     {
-        Log.Information($"{User.Identity?.Name}: find technology data with {filterName}-keyword.");
+        var keyword = filterName.RemoveSpaceCharacter();
 
-        var result = await _technologyRepository.FindByNameAsync(filterName.RemoveSpaceCharacter());
+        Log.Information(
+            "{User} searched technologies with keyword {Keyword}",
+            User.Identity?.Name,
+            keyword);
 
-        if (result is null)
+        var result = await _technologyRepository.FindByNameAsync(keyword);
+
+        if (result is null || !result.Any())
             return NoContent();
 
-        return Ok(new BaseResponse<IEnumerable<TechnologyResource>>(Mapper.Map<IEnumerable<Technology>, IEnumerable<TechnologyResource>>(result)));
+        var resources = Mapper.Map<IEnumerable<TechnologyResource>>(result);
+
+        return Ok(new BaseResponse<IEnumerable<TechnologyResource>>(resources));
     }
 
     [HttpPost]
-    [Authorize(Roles = $"{Role.Admin}, {Role.EditorQTNS}, {Role.EditorQTDA}")]
+    [Authorize(Roles = EditorRoles)]
     [ProducesResponseType(typeof(BaseResponse<TechnologyResource>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(BaseResponse<TechnologyResource>), StatusCodes.Status400BadRequest)]
-    public new async Task<IActionResult> CreateAsync([FromBody] CreateTechnologyResource resource)
+    public new Task<IActionResult> CreateAsync(
+        [FromBody] CreateTechnologyResource resource)
     {
-        Log.Information($"{User.Identity?.Name}: create a technology.");
+        Log.Information(
+            "{User} created a technology.",
+            User.Identity?.Name);
 
-        return await base.CreateAsync(resource);
+        return base.CreateAsync(resource);
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = $"{Role.Admin}, {Role.EditorQTNS}, {Role.EditorQTDA}")]
+    [Authorize(Roles = EditorRoles)]
     [ProducesResponseType(typeof(BaseResponse<TechnologyResource>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BaseResponse<TechnologyResource>), StatusCodes.Status400BadRequest)]
-    public new async Task<IActionResult> UpdateAsync(int id, [FromBody] UpdateTechnologyResource resource)
+    public new Task<IActionResult> UpdateAsync(
+        int id,
+        [FromBody] UpdateTechnologyResource resource)
     {
-        Log.Information($"{User.Identity?.Name}: update a technology with Id is {id}.");
+        Log.Information(
+            "{User} updated technology {Id}.",
+            User.Identity?.Name,
+            id);
 
-        return await base.UpdateAsync(id, resource);
+        return base.UpdateAsync(id, resource);
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = $"{Role.Admin}, {Role.EditorQTNS}, {Role.EditorQTDA}")]
+    [Authorize(Roles = EditorRoles)]
     [ProducesResponseType(typeof(BaseResponse<TechnologyResource>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BaseResponse<TechnologyResource>), StatusCodes.Status400BadRequest)]
-    public new async Task<IActionResult> DeleteAsync(int id)
+    public new Task<IActionResult> DeleteAsync(int id)
     {
-        Log.Information($"{User.Identity?.Name}: delete a technology with Id is {id}.");
+        Log.Information(
+            "{User} deleted technology {Id}.",
+            User.Identity?.Name,
+            id);
 
-        return await base.DeleteAsync(id);
+        return base.DeleteAsync(id);
     }
-    #endregion
 }
