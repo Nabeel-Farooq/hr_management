@@ -1,4 +1,4 @@
-﻿using Business.Communication;
+using Business.Communication;
 using Business.Domain.Services;
 using Business.Resources;
 using Business.Resources.Authentication;
@@ -11,57 +11,65 @@ namespace API.Controllers;
 
 [ApiController]
 [Route("api/v1/token")]
-public class TokenController : ControllerBase
+public sealed class TokenController : ControllerBase
 {
-    #region Property
     private readonly ITokenManagementService _tokenManagementService;
     protected readonly ResponseMessage ResponseMessage;
-    #endregion
 
-    #region Constructor
-    public TokenController(ITokenManagementService tokenManagementService,
+    public TokenController(
+        ITokenManagementService tokenManagementService,
         IOptionsMonitor<ResponseMessage> responseMessage)
     {
-            this._tokenManagementService = tokenManagementService;
-            this.ResponseMessage = responseMessage.CurrentValue;
-        }
-    #endregion
+        _tokenManagementService = tokenManagementService;
+        ResponseMessage = responseMessage.CurrentValue;
+    }
 
-    #region Action
     [AllowAnonymous]
     [HttpPost("login")]
     [ProducesResponseType(typeof(BaseResponse<AccessTokenResource>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BaseResponse<AccessTokenResource>), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> LoginAsync([FromBody] LoginResource resource)
     {
-            string userAgent = Request.Headers["User-Agent"].ToString();
-            var result = await _tokenManagementService.GenerateTokensAsync(resource, DateTime.UtcNow, userAgent);
+        var userAgent = Request.Headers.UserAgent.ToString();
 
-            if (result.Success)
-            {
-                Log.Information($"{result.Resource.UserName}: is login.");
-                return Ok(result);
-            }
+        var result = await _tokenManagementService.GenerateTokensAsync(
+            resource,
+            DateTime.UtcNow,
+            userAgent);
 
+        if (!result.Success)
             return Unauthorized(result);
-        }
+
+        Log.Information(
+            "{UserName} logged in successfully.",
+            result.Resource?.UserName);
+
+        return Ok(result);
+    }
 
     [AllowAnonymous]
     [HttpPost("refresh-token")]
     [ProducesResponseType(typeof(BaseResponse<TokenResource>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BaseResponse<TokenResource>), StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> GenerateNewTokensAsync([FromBody] RefreshTokenResource resource)
+    public async Task<IActionResult> GenerateNewTokensAsync(
+        [FromBody] RefreshTokenResource resource)
     {
-            resource.UserAgent = Request.Headers["User-Agent"].ToString();
-            var result = await _tokenManagementService.GenerateNewTokensAsync(resource, DateTime.UtcNow);
+        resource.UserAgent = Request.Headers.UserAgent.ToString();
 
-            Log.Information($"Account-id {resource.AccountId}: using refresh token with Id is {resource.Id} - {result.Success}.");
+        var result = await _tokenManagementService.GenerateNewTokensAsync(
+            resource,
+            DateTime.UtcNow);
 
-            if (result.Success)
-                return Ok(result);
+        Log.Information(
+            "Account {AccountId} used refresh token {RefreshTokenId}. Success: {Success}",
+            resource.AccountId,
+            resource.Id,
+            result.Success);
 
-            return Unauthorized(result);
-        }
+        return result.Success
+            ? Ok(result)
+            : Unauthorized(result);
+    }
 
     [AllowAnonymous]
     [HttpPost("logout")]
@@ -69,14 +77,14 @@ public class TokenController : ControllerBase
     [ProducesResponseType(typeof(BaseResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> LogoutAsync([FromBody] LogoutResource resource)
     {
-            Log.Information($"Refresh-Token-Id {resource.Id}: is log out.");
+        Log.Information(
+            "Refresh token {RefreshTokenId} logged out.",
+            resource.Id);
 
-            var result = await _tokenManagementService.LogoutAsync(resource);
+        var result = await _tokenManagementService.LogoutAsync(resource);
 
-            if (!result.Success)
-                return BadRequest(result);
-
-            return Ok(result);
-        }
-    #endregion
+        return result.Success
+            ? Ok(result)
+            : BadRequest(result);
+    }
 }
