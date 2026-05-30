@@ -1,4 +1,4 @@
-﻿using Business.Domain.Repositories;
+using Business.Domain.Repositories;
 using Business.Domain.Services;
 using Business.Mapping.Account;
 using Business.Resources;
@@ -13,100 +13,109 @@ public static class AddServices
 {
     public static void AddDependencyInjection(this IServiceCollection services)
     {
-            services.AddScoped<IPersonRepository, PersonRepository>();
-            services.AddScoped<IPersonService, PersonService>();
+        // Repositories
+        services.AddScoped<IPersonRepository, PersonRepository>();
+        services.AddScoped<IEducationRepository, EducationRepository>();
+        services.AddScoped<ICertificateRepository, CertificateRepository>();
+        services.AddScoped<IWorkHistoryRepository, WorkHistoryRepository>();
+        services.AddScoped<IPositionRepository, PositionRepository>();
+        services.AddScoped<IProjectRepository, ProjectRepository>();
+        services.AddScoped<IGroupRepository, GroupRepository>();
+        services.AddScoped<ICategoryRepository, CategoryRepository>();
+        services.AddScoped<ICategoryPersonRepository, CategoryPersonRepository>();
+        services.AddScoped<ITechnologyRepository, TechnologyRepository>();
+        services.AddScoped<IAccountRepository, AccountRepository>();
+        services.AddScoped<ITimesheetRepository, TimesheetRepository>();
+        services.AddScoped<IDepartmentRepository, DepartmentRepository>();
+        services.AddScoped<IPayRepository, PayRepository>();
+        services.AddScoped<ITokenRepository, TokenRepository>();
 
-            services.AddScoped<IEducationRepository, EducationRepository>();
-            services.AddScoped<IEducationService, EducationService>();
+        // Services
+        services.AddScoped<IPersonService, PersonService>();
+        services.AddScoped<IEducationService, EducationService>();
+        services.AddScoped<ICertificateService, CertificateService>();
+        services.AddScoped<IWorkHistoryService, WorkHistoryService>();
+        services.AddScoped<IPositionService, PositionService>();
+        services.AddScoped<IProjectService, ProjectService>();
+        services.AddScoped<IGroupService, GroupService>();
+        services.AddScoped<ICategoryService, CategoryService>();
+        services.AddScoped<ICategoryPersonService, CategoryPersonService>();
+        services.AddScoped<ITechnologyService, TechnologyService>();
+        services.AddScoped<IAccountService, AccountService>();
+        services.AddScoped<ITokenManagementService, TokenManagementService>();
+        services.AddScoped<ITimesheetService, TimesheetService>();
+        services.AddScoped<IDepartmentService, DepartmentService>();
+        services.AddScoped<IPayService, PayService>();
 
-            services.AddScoped<ICertificateRepository, CertificateRepository>();
-            services.AddScoped<ICertificateService, CertificateService>();
+        services.AddScoped<IImageService, ImageService>();
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-            services.AddScoped<IWorkHistoryRepository, WorkHistoryRepository>();
-            services.AddScoped<IWorkHistoryService, WorkHistoryService>();
-
-            services.AddScoped<IPositionRepository, PositionRepository>();
-            services.AddScoped<IPositionService, PositionService>();
-
-            services.AddScoped<IProjectRepository, ProjectRepository>();
-            services.AddScoped<IProjectService, ProjectService>();
-
-            services.AddScoped<IGroupRepository, GroupRepository>();
-            services.AddScoped<IGroupService, GroupService>();
-
-            services.AddScoped<ICategoryRepository, CategoryRepository>();
-            services.AddScoped<ICategoryService, CategoryService>();
-
-            services.AddScoped<ICategoryPersonRepository, CategoryPersonRepository>();
-            services.AddScoped<ICategoryPersonService, CategoryPersonService>();
-
-            services.AddScoped<ITechnologyRepository, TechnologyRepository>();
-            services.AddScoped<ITechnologyService, TechnologyService>();
-
-            services.AddScoped<IAccountRepository, AccountRepository>();
-            services.AddScoped<IAccountService, AccountService>();
-
-            services.AddScoped<ITokenManagementService, TokenManagementService>();
-
-            services.AddScoped<ITimesheetService, TimesheetService>();
-            services.AddScoped<ITimesheetRepository, TimesheetRepository>();
-
-            services.AddScoped<IDepartmentService, DepartmentService>();
-            services.AddScoped<IDepartmentRepository, DepartmentRepository>();
-
-            services.AddScoped<IPayService, PayService>();
-            services.AddScoped<IPayRepository, PayRepository>();
-
-            services.AddScoped<ITokenRepository, TokenRepository>();
-
-            services.AddScoped<IImageService, ImageService>(); // ImageCrossPlatformService (use for other OSs except Windows)
-
-            services.AddScoped<IUnitOfWork, UnitOfWork>();
-
-            services.AddAutoMapper(typeof(ModelToResourceProfile));
-        }
+        services.AddAutoMapper(typeof(ModelToResourceProfile));
+    }
 
     public static void AddCustomizeSwagger(this IServiceCollection services)
     {
-            services.AddSwaggerGen(c =>
-            {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "Human Resource Management for IT Company", Version = "v1.0" });
-                c.OperationFilter<SwaggerFileOperationFilter>();
-
-                var securityScheme = new OpenApiSecurityScheme
+        services.AddSwaggerGen(options =>
+        {
+            options.SwaggerDoc(
+                "v1",
+                new OpenApiInfo
                 {
-                    Name = "Human Resource Management for IT Company",
-                    Description = "Enter JWT Bearer token **_only_**",
-                    In = ParameterLocation.Header,
-                    Type = SecuritySchemeType.Http,
-                    Scheme = "bearer", // Must be lower case
-                    BearerFormat = "JWT",
-                    Reference = new OpenApiReference
-                    {
-                        Id = JwtBearerDefaults.AuthenticationScheme,
-                        Type = ReferenceType.SecurityScheme
-                    }
-                };
-                c.AddSecurityDefinition(securityScheme.Reference.Id, securityScheme);
-                c.AddSecurityRequirement(new OpenApiSecurityRequirement
-                {
-                    {securityScheme, new string[] { }}
+                    Title = "Human Resource Management for IT Company",
+                    Version = "v1.0"
                 });
-            });
-        }
 
-    public static void AddCronJob<T>(this IServiceCollection services, Action<IScheduleConfig<T>> options) where T : CronJobService
+            options.OperationFilter<SwaggerFileOperationFilter>();
+
+            var securityScheme = new OpenApiSecurityScheme
+            {
+                Name = "Human Resource Management for IT Company",
+                Description = "Enter JWT Bearer token only",
+                In = ParameterLocation.Header,
+                Type = SecuritySchemeType.Http,
+                Scheme = JwtBearerDefaults.AuthenticationScheme.ToLowerInvariant(),
+                BearerFormat = "JWT",
+                Reference = new OpenApiReference
+                {
+                    Id = JwtBearerDefaults.AuthenticationScheme,
+                    Type = ReferenceType.SecurityScheme
+                }
+            };
+
+            options.AddSecurityDefinition(
+                securityScheme.Reference.Id,
+                securityScheme);
+
+            options.AddSecurityRequirement(
+                new OpenApiSecurityRequirement
+                {
+                    {
+                        securityScheme,
+                        Array.Empty<string>()
+                    }
+                });
+        });
+    }
+
+    public static void AddCronJob<T>(
+        this IServiceCollection services,
+        Action<IScheduleConfig<T>> configure)
+        where T : CronJobService
     {
-            if (options == null)
-                throw new ArgumentNullException(nameof(options), "Please provide Schedule Configurations.");
+        ArgumentNullException.ThrowIfNull(configure);
 
-            var config = new ScheduleConfig<T>();
-            options.Invoke(config);
+        var config = new ScheduleConfig<T>();
 
-            if (string.IsNullOrWhiteSpace(config.CronExpression))
-                throw new ArgumentNullException(nameof(ScheduleConfig<T>.CronExpression), "Empty Cron Expression is not allowed.");
+        configure(config);
 
-            services.AddSingleton<IScheduleConfig<T>>(config);
-            services.AddHostedService<T>();
+        if (string.IsNullOrWhiteSpace(config.CronExpression))
+        {
+            throw new ArgumentException(
+                "Cron expression cannot be empty.",
+                nameof(config.CronExpression));
         }
+
+        services.AddSingleton<IScheduleConfig<T>>(config);
+        services.AddHostedService<T>();
+    }
 }
