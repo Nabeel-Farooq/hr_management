@@ -1,35 +1,47 @@
-﻿using Business.Resources.Information;
+using System.Text;
+using Business.Resources.Information;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
 
 namespace API.Extensions;
 
 public static class CustomizeAuthentication
 {
-    #region Method
-    public static void AddJwtBearerAuthentication(this IServiceCollection services)
+    private static readonly SymmetricSecurityKey SigningKey =
+        new(Encoding.UTF8.GetBytes(JwtConfig.Secret));
+
+    public static void AddJwtBearerAuthentication(
+        this IServiceCollection services)
     {
-            services.AddAuthentication(x =>
+        services
+            .AddAuthentication(options =>
             {
-                x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            }).AddJwtBearer(x =>
+                options.DefaultAuthenticateScheme =
+                    JwtBearerDefaults.AuthenticationScheme;
+
+                options.DefaultChallengeScheme =
+                    JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
             {
-                x.RequireHttpsMetadata = true;
-                x.SaveToken = true;
-                x.TokenValidationParameters = new TokenValidationParameters
+                options.RequireHttpsMetadata = true;
+                options.SaveToken = true;
+
+                options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidateIssuer = true, // default True
+                    ValidateIssuer = true,
                     ValidIssuer = JwtConfig.Issuer,
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(JwtConfig.Secret)),
+
+                    ValidateAudience = true,
                     ValidAudience = JwtConfig.Audience,
-                    ValidateAudience = true, // default True
+
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = SigningKey,
+
                     ValidateLifetime = true,
+
                     ClockSkew = TimeSpan.FromMinutes(1)
                 };
             });
-        }
-    #endregion
+    }
 }
