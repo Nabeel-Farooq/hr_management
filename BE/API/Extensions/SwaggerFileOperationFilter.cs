@@ -1,23 +1,40 @@
-﻿using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Http;
+using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using System.Reflection;
 
 namespace API.Extensions;
 
-public class SwaggerFileOperationFilter : IOperationFilter
+public sealed class SwaggerFileOperationFilter : IOperationFilter
 {
+    private const string MultipartFormData = "multipart/form-data";
+
     public void Apply(OpenApiOperation operation, OperationFilterContext context)
     {
-            var fileUploadMime = "multipart/form-data";
-            if (operation.RequestBody == null || !operation.RequestBody.Content.Any(x => x.Key.Equals(fileUploadMime, StringComparison.InvariantCultureIgnoreCase)))
-                return;
-
-            var fileParams = context.MethodInfo.GetParameters().Where(p => p.ParameterType == typeof(IFormFile));
-
-            operation.RequestBody.Content[fileUploadMime].Schema.Properties =
-                fileParams.ToDictionary(k => k.Name, v => new OpenApiSchema()
-                {
-                    Type = "string",
-                    Format = "binary"
-                });
+        if (operation.RequestBody?.Content is null ||
+            !operation.RequestBody.Content.TryGetValue(MultipartFormData, out var mediaType))
+        {
+            return;
         }
+
+        var fileParameters = context.MethodInfo
+            .GetParameters()
+            .Where(p => p.ParameterType == typeof(IFormFile))
+            .ToArray();
+
+        if (fileParameters.Length == 0)
+            return;
+
+        mediaType.Schema ??= new OpenApiSchema();
+        mediaType.Schema.Properties ??= new Dictionary<string, OpenApiSchema>();
+
+        foreach (var param in fileParameters)
+        {
+            mediaType.Schema.Properties[param.Name ?? "file"] = new OpenApiSchema
+            {
+                Type = "string",
+                Format = "binary"
+            };
+        }
+    }
 }
